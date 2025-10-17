@@ -1,0 +1,43 @@
+{
+  "name": "rentflow-ai",
+  "version": "1.0.0",
+  "description": "AI-Powered Property Management on Arc with USDC",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build": "cd frontend && npm run build",
+    "test": "npm run test:contracts && npm run test:backend",
+    "test:contracts": "npx hardhat test",
+    "test:backend": "cd backend && npm test",
+    "deploy:contracts": "npx hardhat run scripts/deploy.ts --network arc",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write \"**/*.{ts,tsx,sol,json,md}\""
+  },
+  "keywords": [
+    "blockchain",
+    "ai",
+    "property-management",
+    "arc",
+    "usdc",
+    "defi",
+    "real-estate"
+  ],
+  "author": "RentFlow AI Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.56.0",
+    "hardhat": "^2.19.4",
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.1",
+    "dotenv": "^16.3.1",
+    "ethers": "^6.9.0"
+  }
+}
