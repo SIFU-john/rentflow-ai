@@ -1,0 +1,335 @@
+import React, { useState } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Home, DollarSign, Wrench, TrendingUp, Bell, MessageSquare, AlertTriangle } from 'lucide-react';
+
+const useWallet = () => {
+  const [account, setAccount] = useState(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const connectWallet = async () => {
+    if (typeof window.ethereum === 'undefined') {
+      alert('Please install MetaMask');
+      return;
+    }
+    setIsConnecting(true);
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      setAccount(accounts[0]);
+    } catch (error) {
+      alert('Failed to connect wallet');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  return { account, isConnecting, connectWallet, disconnectWallet: () => setAccount(null) };
+};
+
+const Card = ({ title, children, icon }) => (
+  <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+    <div className="flex items-center gap-3 mb-4">
+      {icon && <div className="text-blue-600">{icon}</div>}
+      <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+    </div>
+    {children}
+  </div>
+);
+
+const StatCard = ({ label, value, trend, trendValue, icon, color }) => (
+  <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm text-gray-500 mb-1">{label}</p>
+        <p className="text-3xl font-bold text-gray-800">{value}</p>
+        {trend && <p className={`text-sm mt-2 ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+          {trend === 'up' ? '↑' : '↓'} {trendValue}
+        </p>}
+      </div>
+      <div className={`p-4 rounded-full ${color}`}>{icon}</div>
+    </div>
+  </div>
+);
+
+const Modal = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+          <h2 className="text-xl font-bold">{title}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  );
+};
+
+export default function RentFlowDashboard() {
+  const { account, connectWallet, disconnectWallet, isConnecting } = useWallet();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [showPropertyModal, setShowPropertyModal] = useState(false);
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+
+  const revenueData = [
+    { month: 'Jan', revenue: 42000 }, { month: 'Feb', revenue: 44500 },
+    { month: 'Mar', revenue: 43000 }, { month: 'Apr', revenue: 46000 },
+    { month: 'May', revenue: 45500 }, { month: 'Jun', revenue: 47500 },
+  ];
+
+  const properties = [
+    { id: 1, address: '123 Oak St', rent: 2500, tenant: 'John Doe', status: 'occupied', lastPayment: '2025-10-01' },
+    { id: 2, address: '456 Maple Ave', rent: 3200, tenant: 'Jane Smith', status: 'occupied', lastPayment: '2025-10-02' },
+    { id: 3, address: '789 Pine Rd', rent: 2800, tenant: '', status: 'vacant', lastPayment: '-' },
+  ];
+
+  const requests = [
+    { id: 1, property: '123 Oak St', issue: 'Leaking faucet', cost: 150, status: 'approved', urgency: 'medium' },
+    { id: 2, property: '456 Maple Ave', issue: 'HVAC not cooling', cost: 450, status: 'pending', urgency: 'high' },
+    { id: 3, property: '123 Oak St', issue: 'Light fixture', cost: 80, status: 'completed', urgency: 'low' },
+  ];
+
+  const notifications = [
+    { id: 1, type: 'payment', message: 'Rent received from 123 Oak St', time: '2 hours ago' },
+    { id: 2, type: 'maintenance', message: 'AI auto-approved maintenance #1247', time: '5 hours ago' },
+    { id: 3, type: 'alert', message: 'Rent overdue at 789 Pine Rd - 3 days', time: '1 day ago' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-600 p-2 rounded-lg">
+                <Home className="text-white" size={28} />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">RentFlow AI</h1>
+                <p className="text-sm text-gray-500">AI-Powered Property Management</p>
+              </div>
+            </div>
+            
+            {!account ? (
+              <button
+                onClick={connectWallet}
+                disabled={isConnecting}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              >
+                {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+              </button>
+            ) : (
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-sm text-gray-600">Connected</p>
+                  <p className="text-sm font-mono text-gray-800">
+                    {account.slice(0, 6)}...{account.slice(-4)}
+                  </p>
+                </div>
+                <button
+                  onClick={disconnectWallet}
+                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+                >
+                  Disconnect
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4">
+          <nav className="flex gap-8">
+            {[
+              { id: 'overview', label: 'Overview', icon: <TrendingUp size={18} /> },
+              { id: 'properties', label: 'Properties', icon: <Home size={18} /> },
+              { id: 'maintenance', label: 'Maintenance', icon: <Wrench size={18} /> },
+              { id: 'tenants', label: 'Tenants', icon: <MessageSquare size={18} /> },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 py-4 px-2 border-b-2 transition ${
+                  activeTab === tab.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                {tab.icon}
+                <span className="font-medium">{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+      </div>
+
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {!account ? (
+          <Card title="Welcome to RentFlow AI" icon={<Home size={20} />}>
+            <div className="text-center py-12">
+              <p className="text-gray-600 mb-6">Connect your wallet to access your property management dashboard</p>
+              <button onClick={connectWallet} className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition">
+                Connect Wallet to Get Started
+              </button>
+            </div>
+          </Card>
+        ) : (
+          <>
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <StatCard label="Total Properties" value="12" trend="up" trendValue="2 this month" icon={<Home size={24} />} color="bg-blue-100" />
+                  <StatCard label="Monthly Revenue" value="$47,500" trend="up" trendValue="8% vs last month" icon={<DollarSign size={24} />} color="bg-green-100" />
+                  <StatCard label="Occupancy Rate" value="94%" icon={<TrendingUp size={24} />} color="bg-purple-100" />
+                  <StatCard label="Avg Response Time" value="2.3 days" trend="down" trendValue="0.5 days faster" icon={<Wrench size={24} />} color="bg-orange-100" />
+                </div>
+
+                <Card title="Revenue Trend" icon={<TrendingUp size={20} />}>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={revenueData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Card>
+
+                <Card title="Recent Activity" icon={<Bell size={20} />}>
+                  <div className="space-y-3">
+                    {notifications.map((n) => (
+                      <div key={n.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className={`p-2 rounded-full ${n.type === 'payment' ? 'bg-green-100' : n.type === 'maintenance' ? 'bg-blue-100' : 'bg-red-100'}`}>
+                          {n.type === 'payment' && <DollarSign size={16} />}
+                          {n.type === 'maintenance' && <Wrench size={16} />}
+                          {n.type === 'alert' && <AlertTriangle size={16} />}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-800">{n.message}</p>
+                          <p className="text-xs text-gray-500 mt-1">{n.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {activeTab === 'properties' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">Properties</h2>
+                  <button onClick={() => setShowPropertyModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    + Add Property
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {properties.map((p) => (
+                    <Card key={p.id} title={p.address} icon={<Home size={20} />}>
+                      <div className="space-y-3">
+                        <div className="flex justify-between"><span className="text-gray-600">Monthly Rent:</span><span className="font-semibold">${p.rent}</span></div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Status:</span>
+                          <span className={`px-3 py-1 rounded-full text-sm ${p.status === 'occupied' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{p.status}</span>
+                        </div>
+                        {p.tenant && (
+                          <>
+                            <div className="flex justify-between"><span className="text-gray-600">Tenant:</span><span className="font-semibold">{p.tenant}</span></div>
+                            <div className="flex justify-between"><span className="text-gray-600">Last Payment:</span><span className="font-semibold">{p.lastPayment}</span></div>
+                          </>
+                        )}
+                        <button className="w-full mt-4 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200">View Details</button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'maintenance' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">Maintenance Requests</h2>
+                  <button onClick={() => setShowMaintenanceModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    + New Request
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {requests.map((r) => (
+                    <Card key={r.id} title={`Request #${r.id}`} icon={<Wrench size={20} />}>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div><p className="text-sm text-gray-500">Property</p><p className="font-semibold">{r.property}</p></div>
+                        <div><p className="text-sm text-gray-500">Issue</p><p className="font-semibold">{r.issue}</p></div>
+                        <div><p className="text-sm text-gray-500">Cost</p><p className="font-semibold">${r.cost}</p></div>
+                        <div>
+                          <p className="text-sm text-gray-500">Status</p>
+                          <span className={`inline-block px-3 py-1 rounded-full text-sm ${r.status === 'approved' ? 'bg-green-100 text-green-700' : r.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>
+                            {r.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 text-xs rounded ${r.urgency === 'high' ? 'bg-red-100 text-red-700' : r.urgency === 'medium' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {r.urgency.toUpperCase()} PRIORITY
+                        </span>
+                        {r.status === 'pending' && <button className="ml-auto bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 text-sm">AI Evaluate</button>}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'tenants' && (
+              <Card title="Tenant Management" icon={<MessageSquare size={20} />}>
+                <p className="text-gray-600 mb-4">Manage tenant communications and profiles</p>
+                <div className="space-y-3">
+                  {properties.filter(p => p.tenant).map((p) => (
+                    <div key={p.id} className="p-4 bg-gray-50 rounded-lg flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold">{p.tenant}</p>
+                        <p className="text-sm text-gray-600">{p.address}</p>
+                      </div>
+                      <button className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm">Message</button>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </>
+        )}
+      </main>
+
+      <Modal isOpen={showPropertyModal} onClose={() => setShowPropertyModal(false)} title="Add New Property">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Property Address</label>
+            <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="123 Main St" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Rent (USDC)</label>
+            <input type="number" className="w-full px-4 py-2 border rounded-lg" placeholder="2500" />
+          </div>
+          <button className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700">Register Property</button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showMaintenanceModal} onClose={() => setShowMaintenanceModal(false)} title="Submit Maintenance Request">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Property</label>
+            <select className="w-full px-4 py-2 border rounded-lg">
+              <option>Select a property</option>
+              {properties.map((p) => <option key={p.id}>{p.address}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Issue Description</label>
+            <textarea rows={4} className="w-full px-4 py-2 border rounded-lg" placeholder="Describe the issue..." />
+          </div>
+          <button className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700">Submit Request</button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
