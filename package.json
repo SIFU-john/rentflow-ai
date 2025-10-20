@@ -39,5 +39,9 @@
     "@openzeppelin/contracts": "^5.0.1",
     "dotenv": "^16.3.1",
     "ethers": "^6.9.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
